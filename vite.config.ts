@@ -12,11 +12,9 @@ export default defineConfig({
       "@assets": path.resolve(process.cwd(), "attached_assets"),
     },
   },
-  envDir: path.resolve(process.cwd()),
-  root: path.resolve(process.cwd(), "client"),
-  publicDir: path.resolve(process.cwd(), "client", "public"),
+  root: "client",
   build: {
-    outDir: path.resolve(process.cwd(), "dist/public"),
+    outDir: "../dist/public",
     emptyOutDir: true,
   },
 });
