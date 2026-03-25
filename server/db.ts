@@ -141,7 +141,7 @@ export async function getPlayerByPhone(phoneNumber: string) {
   
   if (!db) {
     // Mock implementation
-    for (const player of mockData.players.values()) {
+    for (const player of Array.from(mockData.players.values())) {
       if (player.phoneNumber === phoneNumber) {
         return player;
       }
