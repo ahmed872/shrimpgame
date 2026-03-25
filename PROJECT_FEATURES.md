@@ -85,7 +85,7 @@ A sophisticated gamified marketing web application designed to increase customer
 ## 🏗️ Technical Architecture
 
 ### Database Schema
-- **users**: Core authentication (Manus OAuth)
+- **users**: Core authentication 
 - **players**: Game participant data
 - **gameSessions**: Session tracking and attempt limiting
 - **scores**: Individual game results
@@ -165,7 +165,7 @@ pnpm test
 ### Environment Variables Required
 - `DATABASE_URL`: MySQL/TiDB connection
 - `JWT_SECRET`: Session signing secret
-- `VITE_APP_ID`: Manus OAuth app ID
+- `VITE_APP_ID`: OAuth app ID
 - `OAUTH_SERVER_URL`: OAuth backend URL
 - `OWNER_OPEN_ID`: Restaurant owner ID
 - `OWNER_NAME`: Restaurant owner name
