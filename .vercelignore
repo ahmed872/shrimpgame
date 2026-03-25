@@ -1,0 +1,7 @@
+node_modules/.vite
+node_modules/.vite-temp
+.vite-temp
+dist
+.next
+.nuxt
+out
