@@ -1,23 +1,13 @@
-import express from "express";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { createNextApiHandler } from "@trpc/server/adapters/next";
 
 import { appRouter } from "../../server/routers";
 import { createContext } from "../../server/_core/context";
 
-const app = express();
-
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-app.use(
-  "/api/trpc",
-  createExpressMiddleware({
-    router: appRouter,
-    createContext,
-  })
-);
-
-// Vercel function handler
-export default function handler(req: any, res: any) {
-  return app(req, res);
-}
+export default createNextApiHandler({
+  router: appRouter,
+  createContext,
+  onError({ error, path, type }) {
+    // Useful in Vercel logs when something fails during initialization.
+    console.error("[tRPC] error", { path, type, code: error.code, message: error.message });
+  },
+});
