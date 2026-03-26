@@ -3,6 +3,8 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { createServer as createViteServer } from "vite";
 
 export async function setupVite(app: Express, server: Server) {
@@ -14,6 +16,7 @@ export async function setupVite(app: Express, server: Server) {
 
   const vite = await createViteServer({
     configFile: false,
+    plugins: [react(), tailwindcss()],
     server: serverOptions,
     appType: "custom",
     root: path.resolve(import.meta.dirname, "../..", "client"),

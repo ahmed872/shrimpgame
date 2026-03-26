@@ -1,6 +1,16 @@
 {
+  "version": 2,
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm run build",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "builds": [
+    { "src": "api/trpc.ts", "use": "@vercel/node" },
+    { "src": "dist/public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/trpc(/.*)?$", "dest": "api/trpc.ts" },
+    { "src": "/(.*\\..*)$", "dest": "/dist/public/$1" },
+    { "src": "/(.*)$", "dest": "/dist/public/index.html" }
+  ]
 }

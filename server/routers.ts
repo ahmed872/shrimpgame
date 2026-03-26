@@ -155,7 +155,6 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const today = new Date();
-          const dateStr = today.toISOString().split('T')[0];
 
           const result = await db.saveScore({
             playerId: input.playerId,
@@ -172,7 +171,7 @@ export const appRouter = router({
 
           // Check if this is a jackpot and log it
           if (input.isJackpot) {
-            const player = await db.getPlayerByPhone("");
+            const player = await db.getPlayerById(input.playerId);
             if (player) {
               await db.logJackpotEvent({
                 playerId: input.playerId,
@@ -192,7 +191,10 @@ export const appRouter = router({
           console.error("Submit score error:", error);
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to submit score',
+            message:
+              process.env.NODE_ENV === "development"
+                ? `Failed to submit score: ${error instanceof Error ? error.message : String(error)}`
+                : "Failed to submit score",
           });
         }
       }),

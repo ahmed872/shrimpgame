@@ -23,9 +23,12 @@ const mockData = {
   attemptLimits: new Map<string, any>(),
   gameSessions: new Map<number, any>(),
   scores: new Map<number, any>(),
+  dailyLeaderboard: new Map<string, any[]>(),
+  jackpotEvents: new Map<number, any>(),
   nextPlayerId: 1,
   nextSessionId: 1,
   nextScoreId: 1,
+  nextJackpotEventId: 1,
 };
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -156,6 +159,20 @@ export async function getPlayerByPhone(phoneNumber: string) {
   return result.length > 0 ? result[0] : null;
 }
 
+export async function getPlayerById(playerId: number) {
+  const db = await getDb();
+
+  if (!db) {
+    return mockData.players.get(playerId) || null;
+  }
+
+  const result = await db.select().from(players)
+    .where(eq(players.id, playerId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
 export async function checkAttemptLimit(phoneNumber: string, ipAddress: string, today: Date) {
   const db = await getDb();
   
@@ -253,15 +270,21 @@ export async function saveScore(data: {
   scoreDate: Date;
 }) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    const id = mockData.nextScoreId++;
+    mockData.scores.set(id, { id, ...data, createdAt: new Date() });
+    return [{ insertId: id }];
+  }
 
-  const result = await db.insert(scores).values([data]);
-  return result;
+  return db.insert(scores).values([data]);
 }
 
 export async function getDailyLeaderboard(date: Date) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    const key = date.toDateString();
+    return mockData.dailyLeaderboard.get(key) ?? [];
+  }
 
   const result = await db.select().from(dailyLeaderboard)
     .where(eq(dailyLeaderboard.leaderboardDate, date))
@@ -272,7 +295,30 @@ export async function getDailyLeaderboard(date: Date) {
 
 export async function updateDailyLeaderboard(date: Date) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    const key = date.toDateString();
+    const scoresForDay = Array.from(mockData.scores.values())
+      .filter(s => {
+        const scoreDate = s.scoreDate instanceof Date ? s.scoreDate : new Date(s.scoreDate);
+        return scoreDate.toDateString() === key;
+      })
+      .sort((a, b) => (b.finalScore ?? 0) - (a.finalScore ?? 0))
+      .slice(0, 3);
+
+    const rows = scoresForDay.map((s, index) => {
+      const player = mockData.players.get(s.playerId);
+      return {
+        rank: index + 1,
+        playerId: s.playerId,
+        playerName: player?.preferredName ?? "Unknown",
+        score: s.finalScore ?? 0,
+        leaderboardDate: date,
+      };
+    });
+
+    mockData.dailyLeaderboard.set(key, rows);
+    return;
+  }
 
   // Get top 3 scores for the day
   const topScores = await db.select({
@@ -306,7 +352,9 @@ export async function updateDailyLeaderboard(date: Date) {
 
 export async function getWeeklyChampions() {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    return [];
+  }
 
   const result = await db.select().from(weeklyChampions)
     .orderBy(weeklyChampions.dayOfWeek);
@@ -351,15 +399,20 @@ export async function logJackpotEvent(data: {
   eventDate: Date;
 }) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    const id = mockData.nextJackpotEventId++;
+    mockData.jackpotEvents.set(id, { id, ...data, notificationSent: false });
+    return [{ insertId: id }];
+  }
 
-  const result = await db.insert(jackpotEvents).values([data]);
-  return result;
+  return db.insert(jackpotEvents).values([data]);
 }
 
 export async function getUnnotifiedJackpots() {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    return Array.from(mockData.jackpotEvents.values()).filter(e => !e.notificationSent);
+  }
 
   const result = await db.select().from(jackpotEvents)
     .where(eq(jackpotEvents.notificationSent, false));
@@ -369,7 +422,11 @@ export async function getUnnotifiedJackpots() {
 
 export async function markJackpotNotified(jackpotId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) {
+    const existing = mockData.jackpotEvents.get(jackpotId);
+    if (existing) existing.notificationSent = true;
+    return;
+  }
 
   await db.update(jackpotEvents)
     .set({ notificationSent: true })

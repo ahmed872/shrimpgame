@@ -9,11 +9,6 @@ import Game from "./pages/Game";
 import Leaderboard from "./pages/Leaderboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import DisplayMode from "./pages/DisplayMode";
-import { trpc } from "./lib/trpc";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
-import { useState } from "react";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -53,25 +48,7 @@ function AppContent() {
 }
 
 function App() {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: `${window.location.origin}/api/trpc`,
-          transformer: superjson,
-        }),
-      ],
-    })
-  );
-
-  return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <AppContent />
-      </QueryClientProvider>
-    </trpc.Provider>
-  );
+  return <AppContent />;
 }
 
 export default App;
