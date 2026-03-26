@@ -19,9 +19,9 @@ export default function Landing() {
   const [canPlay, setCanPlay] = useState(true);
   const [attemptsRemaining, setAttemptsRemaining] = useState(3);
 
-  // Demo Mode: Check attempts locally
+  // Demo Mode: Check attempts locally per phone number
   useEffect(() => {
-    const attempts = demoMode.getAttempts();
+    const attempts = demoMode.getAttempts(formData.phoneNumber);
     setAttemptsRemaining(attempts);
     setCanPlay(attempts > 0);
   }, [formData.phoneNumber]);
@@ -69,7 +69,7 @@ export default function Landing() {
         orderingMethod: formData.orderSource,
       });
 
-      demoMode.decrementAttempts();
+      demoMode.decrementAttempts(formData.phoneNumber);
       toast.success('Welcome! Starting your game...');
 
       // Navigate to game with player ID

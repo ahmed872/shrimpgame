@@ -47,21 +47,39 @@ export const demoMode = {
     localStorage.removeItem(STORAGE_KEYS.SESSION);
   },
 
-  // Attempts Management (Local Validation)
-  getAttempts(): number {
-    const attempts = localStorage.getItem(STORAGE_KEYS.ATTEMPTS);
-    return attempts ? parseInt(attempts) : 3; // Default 3 attempts
+  // Attempts Management (Per Phone Number)
+  getAttempts(phoneNumber?: string): number {
+    const session = this.getSession();
+    const phone = phoneNumber || session?.playerPhone;
+    
+    if (!phone) return 3; // Default 3 attempts if no phone
+    
+    const key = `${STORAGE_KEYS.ATTEMPTS}_${phone}`;
+    const attempts = localStorage.getItem(key);
+    return attempts ? parseInt(attempts) : 3; // Default 3 attempts per phone
   },
 
-  decrementAttempts(): number {
-    const current = this.getAttempts();
+  decrementAttempts(phoneNumber?: string): number {
+    const session = this.getSession();
+    const phone = phoneNumber || session?.playerPhone;
+    
+    if (!phone) return 2; // Can't decrement without phone
+    
+    const key = `${STORAGE_KEYS.ATTEMPTS}_${phone}`;
+    const current = this.getAttempts(phone);
     const remaining = Math.max(0, current - 1);
-    localStorage.setItem(STORAGE_KEYS.ATTEMPTS, String(remaining));
+    localStorage.setItem(key, String(remaining));
     return remaining;
   },
 
-  resetAttempts() {
-    localStorage.setItem(STORAGE_KEYS.ATTEMPTS, '3');
+  resetAttempts(phoneNumber?: string) {
+    const session = this.getSession();
+    const phone = phoneNumber || session?.playerPhone;
+    
+    if (!phone) return;
+    
+    const key = `${STORAGE_KEYS.ATTEMPTS}_${phone}`;
+    localStorage.setItem(key, '3');
   },
 
   // Score Management
