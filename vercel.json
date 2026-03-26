@@ -2,13 +2,5 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "outputDirectory": "dist/public",
-  "public": false,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "outputDirectory": "dist/public"
 }
