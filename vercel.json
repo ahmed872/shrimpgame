@@ -1,16 +1,13 @@
 {
   "version": 2,
+  "framework": "vite",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm run build",
+  "outputDirectory": "dist/public",
   "cleanUrls": true,
   "trailingSlash": false,
-  "builds": [
-    { "src": "api/trpc.ts", "use": "@vercel/node" },
-    { "src": "dist/public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/trpc(/.*)?$", "dest": "api/trpc.ts" },
-    { "src": "/(.*\\..*)$", "dest": "/dist/public/$1" },
-    { "src": "/(.*)$", "dest": "/dist/public/index.html" }
+  "rewrites": [
+    { "source": "/api/trpc/:path*", "destination": "/api/trpc" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
