@@ -3,10 +3,10 @@ import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
 import ShareToInstagram from '@/components/ShareToInstagram';
 import { BRAND_COLORS, GOLDEN_SHRIMP } from '@shared/gameConstants';
 import { isJackpotScore } from '@shared/gameLogic';
+import { demoMode } from '@/lib/demoMode';
 
 interface FallingItem {
   id: number;
@@ -54,8 +54,7 @@ export default function Game() {
     shakeTime: 0,
   });
 
-  const startSessionMutation = trpc.game.startSession.useMutation();
-  const submitScoreMutation = trpc.game.submitScore.useMutation();
+  // Demo Mode: No API mutations needed
 
   const playSound = useCallback((type: 'shrimp' | 'golden' | 'bomb') => {
     try {
@@ -115,31 +114,11 @@ export default function Game() {
     if (!playerId) return;
     setIsInitializing(true);
     try {
-      const storedSession = localStorage.getItem('sessionId') || `user-${Date.now()}`;
-      let ip = storedSession;
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        if (ipResponse.ok) {
-          const ipData = await ipResponse.json();
-          ip = ipData.ip;
-        }
-      } catch (e) {
-        console.log('Using fallback IP');
-      }
-      const phone = localStorage.getItem('sultan_player_phone') || '0000000000';
-      const result = await startSessionMutation.mutateAsync({
-        playerId: parseInt(playerId),
-        phoneNumber: phone,
-        ipAddress: ip,
-      });
-      setSessionId(result.sessionId);
-    } catch (error: any) {
-      console.error('Failed to start session:', error);
-      if (error?.message?.includes('Daily attempt limit reached') || error?.data?.code === 'TOO_MANY_REQUESTS') {
-         toast.error('لقد استنفذت محاولاتك اليوم! حاول غداً');
-      } else {
-         toast.error('فشل بدء الجلسة');
-      }
+      // Demo Mode: Skip API call, use playerId as session ID
+      setSessionId(parseInt(playerId));
+    } catch (error) {
+      console.error('Session init error:', error);
+      toast.error('فشل بدء اللعبة');
       setLocation('/');
     } finally {
       setIsInitializing(false);
@@ -476,25 +455,23 @@ export default function Game() {
     const isJackpot = isJackpotScore(finalScore);
 
     try {
-      if (sessionId) {
-        await submitScoreMutation.mutateAsync({
-          playerId: parseInt(playerId!),
-          sessionId,
-          score: gameStateRef.current.catches * 10, 
-          finalScore: finalScore,
-          goldenShrimpCount: gameStateRef.current.goldenCatches,
-          isJackpot,
-          jackpotDiscount: isJackpot ? '10' : undefined,
-          gameDuration: Math.min(60, gameStateRef.current.timeElapsed),
-          difficulty: 1,
+      // Demo Mode: Save score to localStorage
+      const session = demoMode.getSession();
+      if (session) {
+        demoMode.saveScore({
+          playerName: session.playerName,
+          score: finalScore,
+          catches: gameStateRef.current.catches,
+          goldenCatches: gameStateRef.current.goldenCatches,
+          timeElapsed: Math.min(60, gameStateRef.current.timeElapsed),
         });
+      }
 
-        if (isJackpot) {
-          toast.success('🎉 لقد ربحت الجائزة الكبرى! خصم 10%');
-        }
+      if (isJackpot) {
+        toast.success('🎉 لقد ربحت الجائزة الكبرى! خصم 10%');
       }
     } catch (error) {
-      console.error('Failed to submit score:', error);
+      console.error('Failed to save score:', error);
     }
   };
 

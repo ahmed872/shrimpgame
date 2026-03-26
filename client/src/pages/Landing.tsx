@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
 import { BRAND_COLORS } from '@shared/gameConstants';
+import { demoMode } from '@/lib/demoMode';
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -16,44 +16,15 @@ export default function Landing() {
     orderSource: 'dine-in' as 'dine-in' | 'app',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [ipAddress, setIpAddress] = useState('');
   const [canPlay, setCanPlay] = useState(true);
   const [attemptsRemaining, setAttemptsRemaining] = useState(3);
-  const [nextAttemptTime, setNextAttemptTime] = useState<string | null>(null);
 
-  // Get unique user ID for this browser session
-  const [sessionId] = useState(() => {
-    let id = localStorage.getItem('userSessionId');
-    if (!id) {
-      id = `user-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      localStorage.setItem('userSessionId', id);
-    }
-    return id;
-  });
-
+  // Demo Mode: Check attempts locally
   useEffect(() => {
-    setIpAddress(sessionId);
-  }, [sessionId]);
-
-  const registerMutation = trpc.player.register.useMutation();
-  const { data: attemptsData } = trpc.player.checkAttempts.useQuery(
-    {
-      phoneNumber: formData.phoneNumber,
-      ipAddress,
-    },
-    {
-      enabled: formData.phoneNumber.length >= 7 && ipAddress !== '',
-    }
-  );
-
-  // Update attempt state when data changes
-  useEffect(() => {
-    if (attemptsData) {
-      setCanPlay(attemptsData.canPlay);
-      setAttemptsRemaining(attemptsData.attemptsRemaining);
-      setNextAttemptTime(attemptsData.nextAttemptTime);
-    }
-  }, [attemptsData]);
+    const attempts = demoMode.getAttempts();
+    setAttemptsRemaining(attempts);
+    setCanPlay(attempts > 0);
+  }, [formData.phoneNumber]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -91,48 +62,23 @@ export default function Landing() {
     setIsLoading(true);
 
     try {
-      console.log('[LANDING] Sending registration:', { name: formData.preferredName, phone: formData.phoneNumber, session: ipAddress });
-      
-      const result = await registerMutation.mutateAsync({
-        preferredName: formData.preferredName,
-        phoneNumber: formData.phoneNumber,
-        orderSource: formData.orderSource,
-        ipAddress,
+      // Demo Mode: Save session and decrement attempts locally
+      const session = demoMode.saveSession({
+        playerName: formData.preferredName,
+        playerPhone: formData.phoneNumber,
+        orderingMethod: formData.orderSource,
       });
 
-      console.log('[LANDING] Registration successful:', result);
+      demoMode.decrementAttempts();
       toast.success('Welcome! Starting your game...');
-      
-      // Save phone number for session
-      localStorage.setItem('sultan_player_phone', formData.phoneNumber);
 
       // Navigate to game with player ID
-      setLocation(`/game/${result.playerId}`);
+      setLocation(`/game/${session.playerId}`);
     } catch (error) {
-      console.error('[LANDING] Registration error:', error);
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error('[LANDING] Error details:', msg);
-      toast.error(`Failed: ${msg}`);
+      toast.error('Failed to start game');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatCountdownTime = (isoString: string | null): string => {
-    if (!isoString) return '';
-    const resetTime = new Date(isoString).getTime();
-    const now = Date.now();
-    const diff = resetTime - now;
-
-    if (diff <= 0) return 'Available now';
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m remaining`;
-    }
-    return `${minutes}m remaining`;
   };
 
   return (
@@ -187,7 +133,7 @@ export default function Landing() {
                 <p className="text-xs mt-1" style={{ color: canPlay ? BRAND_COLORS.ACCENT : BRAND_COLORS.PRIMARY }}>
                   {canPlay
                     ? `✓ ${attemptsRemaining} attempt${attemptsRemaining !== 1 ? 's' : ''} remaining today`
-                    : `✗ No attempts available today. ${formatCountdownTime(nextAttemptTime)}`}
+                    : `✗ No attempts available today`}
                 </p>
               )}
             </div>

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
-import { trpc } from '@/lib/trpc';
 import { BRAND_COLORS, DAYS_OF_WEEK } from '@shared/gameConstants';
+import { demoMode } from '@/lib/demoMode';
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,20 +24,17 @@ export default function Leaderboard() {
   const [weeklyChampions, setWeeklyChampions] = useState<WeeklyChampion[]>([]);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly'>('daily');
 
-  const { data: dailyData, isLoading: dailyLoading } = trpc.leaderboard.getDaily.useQuery();
-  const { data: weeklyData, isLoading: weeklyLoading } = trpc.leaderboard.getWeekly.useQuery();
-
   useEffect(() => {
-    if (dailyData) {
-      setDailyLeaderboard(dailyData);
+    // Demo Mode: Load from localStorage or use mock data
+    const today = demoMode.getDailyLeaderboard();
+    if (today.length > 0) {
+      setDailyLeaderboard(today);
+    } else {
+      setDailyLeaderboard(demoMode.getMockDailyLeaderboard());
     }
-  }, [dailyData]);
 
-  useEffect(() => {
-    if (weeklyData) {
-      setWeeklyChampions(weeklyData);
-    }
-  }, [weeklyData]);
+    setWeeklyChampions(demoMode.getMockWeeklyChampions());
+  }, []);
 
   const getMedalEmoji = (rank: number): string => {
     switch (rank) {
@@ -112,11 +109,7 @@ export default function Leaderboard() {
         {/* Daily Leaderboard */}
         {activeTab === 'daily' && (
           <div className="space-y-3">
-            {dailyLoading ? (
-              <Card className="p-8 text-center">
-                <p className="text-gray-600">Loading leaderboard...</p>
-              </Card>
-            ) : dailyLeaderboard.length === 0 ? (
+            {dailyLeaderboard.length === 0 ? (
               <Card className="p-8 text-center">
                 <p className="text-gray-600 mb-4">No scores yet today</p>
                 <Button
@@ -155,11 +148,7 @@ export default function Leaderboard() {
         {/* Weekly Champions */}
         {activeTab === 'weekly' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {weeklyLoading ? (
-              <Card className="p-8 text-center col-span-full">
-                <p className="text-gray-600">Loading weekly champions...</p>
-              </Card>
-            ) : weeklyChampions.length === 0 ? (
+            {weeklyChampions.length === 0 ? (
               <Card className="p-8 text-center col-span-full">
                 <p className="text-gray-600">No weekly data yet</p>
               </Card>
